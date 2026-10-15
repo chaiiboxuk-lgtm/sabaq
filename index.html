@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Sabaq Check-in</title>
+<meta name="theme-color" content="#1f6f54">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  /* Arabic fonts are stored with the app so they work offline (SIL Open Font License, see fonts/OFL-LICENSE.txt) */
+  @font-face{font-family:"Amiri";font-weight:400;font-display:swap;src:url(fonts/amiri-arabic-400-normal.woff2) format("woff2")}
+  @font-face{font-family:"Amiri";font-weight:700;font-display:swap;src:url(fonts/amiri-arabic-700-normal.woff2) format("woff2")}
+  @font-face{font-family:"Amiri Quran";font-weight:400;font-display:swap;src:url(fonts/amiri-quran-arabic-400-normal.woff2) format("woff2")}
+  :root{--bg:#f6f3ec;--card:#fff;--ink:#1f2a24;--muted:#69736d;--brand:#1f6f54;--soft:#e3efe8;--amber:#b7791f;--amberSoft:#fbf0dc;--line:#e2dccf}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-user-select:none;user-select:none}
+  .app{max-width:1150px;margin:0 auto;padding:22px 24px 48px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}
+  h1{font-size:30px;margin:0;letter-spacing:-.01em}
+  h2{font-size:26px;margin:0 0 6px}
+  .sub{color:var(--muted);font-size:19px;margin:0 0 18px}
+  .clock{color:var(--muted);font-size:18px;text-align:right}
+  .bar{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .btn{border:0;border-radius:16px;padding:18px 28px;font-size:20px;font-weight:650;cursor:pointer;background:var(--soft);color:var(--brand);font-family:inherit}
+  .btn.primary{background:var(--brand);color:#fff}
+  .btn.back{padding:14px 22px;font-size:18px}
+  .btn:active{transform:scale(.98)}
+  .btn[disabled]{opacity:.5}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+  .chip{border:2px solid var(--line);background:#fff;border-radius:999px;padding:12px 22px;font-size:18px;font-weight:650;color:var(--ink);font-family:inherit}
+  .chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+  .grid.small{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .grid.nums{grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:10px}
+  .tile{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:18px 16px;min-height:92px;font-size:21px;font-weight:650;text-align:left;cursor:pointer;color:var(--ink);font-family:inherit;line-height:1.25}
+  .tile small{display:block;font-size:15px;font-weight:500;color:var(--muted);margin-top:6px}
+  .tile .n{display:block;font-size:14px;font-weight:700;color:var(--brand);margin-bottom:4px}
+  .tile:active,.tile.sel{border-color:var(--brand);background:var(--soft)}
+  .nums .tile{min-height:68px;text-align:center;font-size:24px;padding:10px}
+  .big{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+  .big .tile{min-height:180px;font-size:30px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
+  .big .tile small{font-size:18px}
+  .tile.amber{border-color:#ead3a6;background:var(--amberSoft)}
+  .summary{background:#fff;border:2px solid var(--line);border-radius:22px;padding:28px;font-size:24px;line-height:1.6;margin-bottom:22px}
+  .summary b{color:var(--brand)}
+  .actions{display:flex;gap:14px;flex-wrap:wrap}
+  .done{text-align:center;padding:60px 20px}
+  .tick{width:120px;height:120px;border-radius:50%;background:var(--brand);color:#fff;font-size:70px;line-height:120px;margin:0 auto 26px}
+  .done h2{font-size:34px}
+  .done .actions{justify-content:center;margin-top:30px}
+  #loading{position:fixed;inset:0;background:rgba(246,243,236,.85);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--muted);z-index:9}
+  #msg{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#8a2b1f;color:#fff;padding:16px 24px;border-radius:14px;font-size:19px;z-index:10;max-width:90%}
+  .tile.done{background:var(--soft);border-color:#bcd8c9}
+  .tile.done small{color:var(--brand);font-weight:650}
+  .tile[disabled]{opacity:.4;cursor:not-allowed}
+  .tile .ar{display:block;font-size:30px;font-family:"Amiri","Scheherazade New","Traditional Arabic",serif;direction:rtl;text-align:right;color:var(--brand);margin-bottom:4px;font-weight:400}
+  .entry{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap;margin:0 0 10px}
+  .entry input{font:inherit;font-size:30px;font-weight:700;width:180px;padding:14px 18px;border:3px solid var(--line);border-radius:16px;background:#fff;color:var(--ink);text-align:center}
+  .entry input:focus{outline:none;border-color:var(--brand)}
+  .entry input.bad{border-color:#b3412f}
+  .err{color:#a33a2a;font-size:19px;font-weight:600;min-height:28px;margin:0 0 14px}
+  .state{background:#fff;border:2px solid var(--line);border-radius:16px;padding:14px 18px;font-size:19px;margin:0 0 18px;display:inline-block}
+  .state b{color:var(--brand)}
+  .lines{display:flex;flex-direction:column;gap:10px}
+  .lines .tile{min-height:0;display:flex;gap:16px;align-items:center}
+  .lines .tile .ln{font-size:22px;color:var(--brand);min-width:36px}
+  .lines .tile .tx{flex:1;min-width:0}
+  .lines .tile .tx b{display:block;font-size:20px;line-height:1.35}
+  .lines .tile .tx small{font-size:16px;font-style:italic;margin-top:4px}
+  .lines .tile .ar{font-size:26px;margin:4px 0 0}
+  .quran .tile{direction:rtl;text-align:right;align-items:flex-start;padding:14px 18px}
+  .quran .tile .ln{flex:none;width:52px;height:52px;border:2px solid var(--brand);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-family:system-ui,sans-serif;direction:ltr;margin-top:8px}
+  .quran .tile .ar{font-family:"Amiri Quran","Amiri",serif;font-size:34px;line-height:2.2;margin:0;color:var(--ink)}
+  .quran .tile.done .ln{background:var(--brand);color:#fff}
+  .quran .tile .tx b,.quran .tile .tx small{direction:ltr;text-align:right;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .quran .tile .tx b{font-size:15px;text-transform:uppercase;letter-spacing:.05em;color:var(--brand)}
+  .quran .tile .tx small{margin-top:2px;line-height:1.4}
+  .quran .tile[disabled]{opacity:.5}
+  .pickhint{font-size:19px;color:var(--muted);margin:6px 0 12px}
+  .tablewrap{overflow-x:auto;margin:0 0 14px}
+  table.rak{border-collapse:collapse;background:#fff;font-size:19px;min-width:640px;width:100%}
+  table.rak th,table.rak td{border:2px solid var(--line);padding:12px 10px;text-align:center}
+  table.rak tr:first-child th{background:var(--brand);color:#fff;font-size:16px;text-transform:uppercase;letter-spacing:.04em}
+  table.rak tr th:first-child{background:var(--soft);color:var(--brand);text-align:left}
+  table.rak td:nth-child(2){font-weight:700}
+  table.rak td.none{background:#f1eee6}
+  .tnote{font-size:17px;color:var(--muted);margin:0 0 20px;max-width:65ch}
+  .bar{justify-content:space-between}
+  .listbtn{background:var(--brand);color:#fff;padding:14px 22px;font-size:18px}
+  .listbtn b{display:inline-block;min-width:30px;padding:2px 8px;margin-left:6px;border-radius:999px;background:#fff;color:var(--brand)}
+  .tile.added{border-color:var(--amber);background:var(--amberSoft)}
+  .tile.added small{color:var(--amber);font-weight:700}
+  .quran .tile.added .ln{background:var(--amber);border-color:var(--amber);color:#fff}
+  .inlist{background:var(--amberSoft);border:2px solid #ead3a6;border-radius:16px;padding:12px 18px;font-size:19px;margin:0 0 18px}
+  .rows{display:flex;flex-direction:column;gap:12px;margin:0 0 22px}
+  .row{display:flex;align-items:center;gap:16px;background:#fff;border:2px solid var(--line);border-radius:18px;padding:16px 18px}
+  .row .what{flex:1;min-width:0;font-size:22px;font-weight:650;line-height:1.3}
+  .row .what small{display:block;font-size:16px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+  .row .what span{display:block;font-size:18px;font-weight:500;color:var(--muted);margin-top:2px}
+  .pill{font-size:16px;font-weight:700;padding:6px 12px;border-radius:999px;background:var(--soft);color:var(--brand);white-space:nowrap}
+  .pill.rev{background:var(--amberSoft);color:var(--amber)}
+  .row .x{border:0;background:#f3ece2;color:#8a2b1f;border-radius:14px;width:56px;height:56px;font-size:26px;cursor:pointer;flex:none;font-family:inherit}
+  .bigsave{font-size:24px;padding:22px 36px}
+  .ghost{background:none;color:var(--muted);font-size:17px;padding:14px 10px}
+  .ghost.warn{color:#8a2b1f;font-weight:700}
+  .bdaybox{background:var(--amberSoft);border:2px solid #ead3a6;color:var(--ink);border-radius:18px;padding:14px 20px;font-size:21px;font-weight:650;margin:-4px 0 18px;display:inline-block}
+  .tile .cake{float:right;font-size:22px}
+  .done ul{list-style:none;padding:0;margin:0 auto 10px;max-width:560px;text-align:left;font-size:19px}
+  .done li{padding:8px 0;border-bottom:1px solid var(--line)}
+  .tile.pick{border-color:var(--brand);background:#d3eadd}
+  .tile.pick::after{content:'✓';float:right;font-size:20px;color:var(--brand);font-weight:800}
+  .nums .tile.pick::after{display:none}
+  .nums .tile.pick{background:var(--brand);color:#fff}
+  .quran .tile.pick .ln{background:var(--brand);color:#fff}
+  .quran .tile.pick::after{float:left}
+  .addbar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--card);border-top:2px solid var(--line);box-shadow:0 -6px 20px rgba(31,42,36,.08);
+    padding:14px max(24px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(24px,env(safe-area-inset-left,0px))}
+  .addbar-in{max-width:1150px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .addbar-in span{font-size:21px;font-weight:650}
+  .addbar-in span small{display:block;font-size:16px;font-weight:500;color:var(--muted)}
+  #number:not([hidden]),#item:not([hidden]){padding-bottom:110px}
+  .saveerr{background:#fbe4df;border:2px solid #d9a497;color:#8a2b1f;border-radius:16px;padding:14px 18px;font-size:19px;font-weight:600;margin:0 0 18px}
+  .modes{display:flex;gap:10px;margin:0 0 16px;flex-wrap:wrap}
+  .low{margin-top:22px}
+  .hdr-r{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  .sync{border:0;border-radius:999px;padding:6px 14px;font:inherit;font-size:15px;font-weight:650;cursor:pointer}
+  .sync.ok{background:var(--soft);color:var(--brand)}
+  .sync.wait{background:var(--amberSoft);color:var(--amber)}
+  #setup .entry input{width:min(720px,100%);font-size:18px;text-align:left;font-weight:500}
+  #setup ol{font-size:18px;line-height:1.6;color:var(--muted);max-width:70ch}
+  [hidden]{display:none!important}
+  @media (max-width:640px){.big .tile{min-height:120px;font-size:24px}.grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1 id="title">Sabaq check-in</h1>
+    <div class="hdr-r"><div class="clock" id="clock"></div><button class="sync ok" id="sync" title="Tap to send now"></button></div>
+  </header>
+
+  <!-- 0. Connect this tablet (first time only; open later by tapping the title 5 times) -->
+  <section class="screen" id="setup" hidden>
+    <h2>Connect this tablet</h2>
+    <ol>
+      <li>Open your Apps Script project → <b>Deploy → Manage deployments</b>.</li>
+      <li>Copy the <b>Web app URL</b> of the <b>student</b> deployment (it ends in <b>/exec</b>).</li>
+      <li>Paste it below and tap Connect. The tablet needs internet for this step only.</li>
+    </ol>
+    <div class="entry"><input id="setupUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false"><button class="btn primary" id="setupGo">Connect</button></div>
+    <p class="err" id="setupErr"></p>
+    <p class="sub" id="setupNote"></p>
+    <div class="actions"><button class="btn" id="setupCancel" hidden>Back to names</button></div>
+  </section>
+
+  <!-- 1. Pick name -->
+  <section class="screen" id="home">
+    <p class="sub">Assalamu alaykum! Tap your name.</p>
+    <div class="chips" id="sets"></div>
+    <div class="grid" id="students"></div>
+  </section>
+
+  <!-- 2. Pick what they're learning -->
+  <section class="screen" id="track" hidden>
+    <div class="bar"><button class="btn back" data-go="home">← Not me</button><button class="btn listbtn" data-go="list" hidden>My list <b class="lc">0</b></button></div>
+    <h2 id="trackHello"></h2>
+    <div class="bdaybox" id="bdayBox" hidden></div>
+    <p class="sub" id="trackSub">What did you read today?</p>
+    <div class="big" id="tracks"></div>
+  </section>
+
+  <!-- 3. Pick surah / part / name -->
+  <section class="screen" id="item" hidden>
+    <div class="bar"><button class="btn back" data-go="track">← Back</button><button class="btn listbtn" data-go="list" hidden>My list <b class="lc">0</b></button></div>
+    <h2 id="itemTitle"></h2>
+    <p class="sub" id="itemHint"></p>
+    <div id="namesBox" hidden>
+      <div class="modes" id="nameModes"></div>
+      <div class="state" id="namesState"></div>
+      <div class="inlist" id="namesInList" hidden></div>
+      <div class="entry"><input id="nameInput" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="No." autocomplete="off"><button class="btn primary" id="nameGo">Select</button></div>
+      <p class="err" id="nameErr"></p>
+    </div>
+    <div class="grid" id="items"></div>
+    <div class="addbar" id="nameBar" hidden><div class="addbar-in">
+      <span id="nameText"></span>
+      <button class="btn primary bigsave" id="nameAddBtn">Add to my list</button>
+    </div></div>
+  </section>
+
+  <!-- 4. Verse / line reached -->
+  <section class="screen" id="number" hidden>
+    <div class="bar"><button class="btn back" data-go="item">← Back</button><button class="btn listbtn" data-go="list" hidden>My list <b class="lc">0</b></button></div>
+    <h2 id="numTitle"></h2>
+    <p class="sub" id="numSub"></p>
+    <div class="state" id="numState"></div>
+    <div class="inlist" id="numInList" hidden></div>
+    <div id="numEntry">
+      <div class="entry" id="numRow"><input id="numInput" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off"><button class="btn primary" id="numGo">Select</button></div>
+      <p class="err" id="numErr"></p>
+      <p class="pickhint" id="pickHint"></p>
+      <div id="numPick"></div>
+    </div>
+    <div class="low"><button class="btn" id="revBtn">I did revision instead</button></div>
+    <div class="addbar" id="addBar" hidden><div class="addbar-in">
+      <span id="addText"></span>
+      <button class="btn primary bigsave" id="addBtn">Add to my list</button>
+    </div></div>
+  </section>
+
+  <!-- 5. Today's list -->
+  <section class="screen" id="list" hidden>
+    <h2 id="listTitle">Your sabaq today</h2>
+    <p class="sub">Add everything you read, then save it all at once.</p>
+    <div class="saveerr" id="listErr" hidden></div>
+    <div class="rows" id="rows"></div>
+    <div class="actions">
+      <button class="btn" id="moreSame">+ More</button>
+      <button class="btn" id="moreOther">+ Something else</button>
+    </div>
+    <div class="actions" style="margin-top:22px;align-items:center">
+      <button class="btn primary bigsave" id="saveBtn">Save all</button>
+      <button class="btn ghost" id="clearBtn">Start again</button>
+    </div>
+  </section>
+
+  <!-- 6. Saved -->
+  <section class="screen done" id="saved" hidden>
+    <div class="tick">✓</div>
+    <h2 id="savedTitle"></h2>
+    <p class="sub" id="savedSub"></p>
+    <ul id="savedList"></ul>
+    <div class="actions">
+      <button class="btn primary" data-go="home">Finish</button>
+    </div>
+  </section>
+</div>
+
+<div id="loading">Loading…</div>
+<div id="msg" hidden></div>
+
+<script>
+  const S = { data: null, set: 'All', student: null, reached: {}, track: null, item: null, number: null, revision: false, list: [], sel: null, busy: false };
+  let clearArmed = false;
+  let idleTimer, savedTimer, msgTimer;
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const first = n => String(n || '').split(' ')[0];
+
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => { s.hidden = s.id !== id; });
+    document.querySelectorAll('.listbtn').forEach(b => { b.hidden = !S.list.length; b.querySelector('.lc').textContent = S.list.length; });
+    window.scrollTo(0, 0);
+    resetIdle();
+  }
+
+  function resetIdle() {
+    clearTimeout(idleTimer);
+    // back to names when left alone (longer if something is waiting in the list)
+    idleTimer = setTimeout(() => { if ($('home').hidden) goHome(); }, S.list.length ? 180000 : 90000);
+  }
+
+  function toast(text) {
+    $('msg').textContent = text; $('msg').hidden = false;
+    clearTimeout(msgTimer); msgTimer = setTimeout(() => { $('msg').hidden = true; }, 4000);
+  }
+
+  function fail(e) {
+    $('loading').hidden = true; S.busy = false; $('saveBtn').disabled = false;
+    toast((e && e.message) || String(e));
+  }
+
+  /* ---- storage on this tablet ---- */
+  const KEY = { url: 'sabaq.url', data: 'sabaq.data', queue: 'sabaq.queue', synced: 'sabaq.lastSync' };
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+  };
+  let API = store.get(KEY.url, '');         // the student web app link (/exec)
+  let SERVER = store.get(KEY.data, null);   // the last data received from the sheet
+  let syncing = false, lastErr = '', syncGen = 0, reloadPending = false;
+  const queue = () => store.get(KEY.queue, []);
+  const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const bdayToday = s => !!(s && s.bday && S.data && S.data.today === todayISO());
+
+  /** What the tablet shows = the sheet's data + anything saved here that hasn't been sent yet. */
+  function rebuild() {
+    if (!SERVER) return;
+    const d = JSON.parse(JSON.stringify(SERVER));
+    d.reached = d.reached || {};
+    queue().forEach(b => { d.reached[b.studentId] = applyLocally(d.reached[b.studentId] || {}, b.entries); });
+    S.data = d;
+  }
+
+  /** Fetches the latest students, curriculum and positions from the sheet (when online). */
+  async function refresh() {
+    if (!API) return false;
+    const gen = syncGen;
+    try {
+      const r = await fetch(API + (API.includes('?') ? '&' : '?') + 'api=kiosk&t=' + Date.now(), { cache: 'no-store' });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      if (!d.students || !d.curriculum) throw new Error('That link did not return the student data.');
+      if (gen !== syncGen) return refresh();   // a sync finished meanwhile: fetch again so nothing goes backwards
+      SERVER = d; store.set(KEY.data, d); rebuild();
+      if (!$('home').hidden) renderHome();
+      return true;
+    } catch (e) {
+      return false;
+    } finally { syncChip(); }
+  }
+
+  /** Sends saved check-ins to the sheet. Safe to repeat: the sheet ignores anything it already has. */
+  async function flush() {
+    if (syncing || !API) return;
+    if (!queue().length) { syncChip(); return; }
+    syncing = true; syncChip();
+    try {
+      const r = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'sync', batches: queue().slice(0, 20) }) });
+      const res = await r.json();
+      if (res.error) throw new Error(res.error);
+      const done = new Set([].concat(res.done || [], res.skipped || []));
+      store.set(KEY.queue, queue().filter(b => !done.has(b.id)));
+      if (SERVER && res.reached) { Object.keys(res.reached).forEach(id => { SERVER.reached[id] = res.reached[id]; }); store.set(KEY.data, SERVER); }
+      syncGen++; rebuild(); lastErr = ''; store.set(KEY.synced, Date.now());
+    } catch (e) {
+      lastErr = navigator.onLine === false ? 'offline' : ((e && e.message) || String(e));
+    }
+    syncing = false; syncChip();
+    if (!lastErr && queue().length) flush();
+  }
+
+  function syncChip() {
+    const n = queue().length, el = $('sync');
+    el.className = 'sync ' + (n ? 'wait' : 'ok');
+    el.textContent = !n ? '✓ All saved' : syncing ? `Sending ${n}…` : `${n} waiting to send` + (lastErr === 'offline' || navigator.onLine === false ? ' · offline' : '');
+    el.title = lastErr && lastErr !== 'offline' ? 'Last try: ' + lastErr : 'Tap to send now';
+  }
+
+  /* ---- connect this tablet ---- */
+  function showSetup(fromMenu) {
+    $('setupUrl').value = API || '';
+    $('setupErr').textContent = '';
+    const n = queue().length;
+    $('setupNote').textContent = n ? `${n} check-in${n > 1 ? 's are' : ' is'} still waiting to send. Keep the same link so they are not lost.` : '';
+    $('setupCancel').hidden = !(fromMenu && SERVER);
+    $('loading').hidden = true;
+    show('setup');
+  }
+
+  async function connect() {
+    const url = $('setupUrl').value.trim();
+    if (!/^https:\/\/script\.google\.com\/(a\/[^/]+\/)?macros\/s\/[\w-]+\/exec$/.test(url)) {
+      $('setupErr').textContent = 'That does not look like a web app link. It should start with https://script.google.com/macros/s/ and end with /exec.'; return;
+    }
+    $('setupGo').disabled = true; $('setupErr').textContent = 'Connecting…';
+    const old = API; API = url;
+    const ok = await refresh();
+    $('setupGo').disabled = false;
+    if (!ok) { API = old; $('setupErr').textContent = 'Could not connect. Check the tablet is online and that you copied the student deployment link (access: Anyone).'; return; }
+    store.set(KEY.url, url);
+    goHome(); flush();
+  }
+
+  function goHome() {
+    if (reloadPending) { location.reload(); return; }   // an app update was downloaded: switch to it between students
+    clearTimeout(savedTimer);
+    Object.assign(S, { student: null, reached: {}, track: null, item: null, number: null, revision: false, list: [] });
+    renderHome(); show('home');
+  }
+
+  /* ---- 1. names ---- */
+  function renderHome() {
+    if (!S.data) return;
+    const sets = [...new Set(S.data.students.map(s => s.set).filter(Boolean))].sort();
+    if (S.set !== 'All' && !sets.includes(S.set)) S.set = 'All';
+    $('sets').innerHTML = sets.length > 1
+      ? ['All', ...sets].map(x => `<button class="chip ${x === S.set ? 'on' : ''}" data-set="${esc(x)}">${esc(x === 'All' ? 'Everyone' : x)}</button>`).join('')
+      : '';
+    const list = S.data.students.filter(s => S.set === 'All' || s.set === S.set);
+    $('students').innerHTML = list.length
+      ? list.map(s => `<button class="tile" data-student="${esc(s.id)}">${bdayToday(s) ? '<span class="cake">🎂</span>' : ''}${esc(s.name)}<small>${esc(s.year)}</small></button>`).join('')
+      : '<p class="sub">No students yet — please ask your teacher.</p>';
+  }
+
+  /* ---- 2. tracks ---- */
+  function renderTracks() {
+    $('trackHello').textContent = 'Assalamu alaykum, ' + first(S.student.name);
+    $('bdayBox').hidden = !bdayToday(S.student);
+    $('bdayBox').textContent = '🎂 Happy birthday, ' + first(S.student.name) + '!';
+    $('trackSub').textContent = S.list.length ? 'What else did you read today?' : 'What did you read today?';
+    const sub = { JUZ30: 'Surahs An-Nas to An-Naba', SALAH: 'Duas and words of salah', NAMES: 'Asma ul-Husna' };
+    $('tracks').innerHTML = S.data.tracks.map(t =>
+      `<button class="tile" data-track="${t.key}">${esc(t.label)}<small>${esc(sub[t.key] || '')}</small></button>`).join('');
+  }
+
+  /* ---- 3. items ---- */
+  function reachedFor(item) { return (S.reached[S.track.key] || {})[item.order] || 0; }
+  const keyOf = (track, order, rev) => track + ':' + (track === 'NAMES' ? '' : order) + (rev ? ':rev' : '');
+  function pending(track, order, rev) { return S.list.find(e => e.key === keyOf(track, order, rev)); }
+  function trackOf(key) { return S.data.tracks.find(t => t.key === key); }
+
+  function renderItems() {
+    const t = S.track, items = S.data.curriculum[t.key] || [];
+    $('itemTitle').textContent = t.label;
+    $('itemHint').textContent = t.hint;
+    $('namesBox').hidden = t.mode !== 'upto';
+    $('nameBar').hidden = true;
+    if (t.mode === 'upto') return renderNames();
+    $('items').className = 'grid';
+    $('items').innerHTML = items.map(i => {
+      const prev = reachedFor(i), done = prev >= i.size;
+      const top = t.key === 'JUZ30' ? `<span class="n">${esc(i.detail)}</span>` : `<span class="n">Part ${i.order}</span>`;
+      const pe = pending(t.key, i.order, false), pr = pending(t.key, i.order, true);
+      const small = pe ? (i.tick ? '✓ In your list' : `✓ In your list: up to ${t.unit} ${pe.number}`)
+        : pr ? '✓ In your list: revision'
+        : done ? '✓ Complete' : i.tick ? 'Read and tick' : prev ? `Up to ${t.unit} ${prev} of ${i.size}` : `${i.size} ${i.size === 1 ? t.unit : t.units}`;
+      return `<button class="tile ${pe || pr ? 'added' : done ? 'done' : ''}" data-order="${i.order}">${top}${esc(i.item)}<small>${small}</small></button>`;
+    }).join('');
+  }
+
+  function renderNames() {
+    const reached = S.reached.NAMES || 0, items = S.data.curriculum.NAMES, rev = S.revision;
+    $('nameModes').innerHTML =
+      `<button class="chip ${rev ? '' : 'on'}" data-namemode="new">New sabaq</button>` +
+      (reached ? `<button class="chip ${rev ? 'on' : ''}" data-namemode="rev">Revision</button>` : '');
+    $('namesState').innerHTML = reached ? `You have learnt up to <b>name ${reached}</b> (${esc(items[reached - 1].item)})` : 'You are starting the 99 Names.';
+    const pe = pending('NAMES', 0, rev);
+    $('namesInList').hidden = !pe;
+    if (pe) $('namesInList').innerHTML = `In your list: ${rev ? 'revised' : 'learnt'} up to <b>name ${pe.number}</b>. Change the ticks to update it.`;
+    $('nameInput').value = ''; $('nameInput').classList.remove('bad'); $('nameErr').textContent = '';
+    $('nameInput').placeholder = rev ? `1–${reached}` : `${Math.min(reached + 1, items.length)}–${items.length}`;
+    $('items').className = 'grid small';
+    $('items').innerHTML = items.map(i => {
+      const learnt = i.order <= reached;
+      const off = rev ? !learnt : learnt;
+      return `<button class="tile ${learnt && !rev ? 'done' : ''}" data-name="${i.order}" ${off ? 'disabled' : ''}>` +
+        (i.arabic ? `<span class="ar">${esc(i.arabic)}</span>` : '') +
+        `<span class="n">${i.order}</span>${esc(i.item)}${i.meaning ? `<small>${esc(i.meaning)}</small>` : ''}</button>`;
+    }).join('');
+    S.sel = pe ? pe.number : null;
+    showNameSel();
+  }
+
+  /** Highlights the chosen names (a run from the next new name, or from name 1 for revision) and updates the add bar. */
+  function showNameSel() {
+    const rev = S.revision, base = rev ? 0 : (S.reached.NAMES || 0), sel = S.sel;
+    document.querySelectorAll('#items [data-name]').forEach(b => {
+      const n = Number(b.dataset.name);
+      b.classList.toggle('pick', !!sel && n > base && n <= sel);
+    });
+    $('nameBar').hidden = !sel;
+    if (!sel) return;
+    const count = sel - base, items = S.data.curriculum.NAMES;
+    $('nameText').innerHTML = (count === 1 ? `Name ${sel}` : `Names ${base + 1}–${sel}`) +
+      `<small>${count} ${count === 1 ? 'name' : 'names'} ${rev ? 'to revise' : 'selected'} · up to ${esc(items[sel - 1].item)}</small>`;
+  }
+
+  function checkName(n) {
+    const reached = S.reached.NAMES || 0, max = S.data.curriculum.NAMES.length;
+    if (!Number.isInteger(n) || n < 1) return 'Type a number.';
+    if (n > max) return `There are only ${max} names.`;
+    if (S.revision) return n > reached ? `You can only revise names you have learnt (up to ${reached}).` : '';
+    return n <= reached ? `You have already learnt up to name ${reached}. Type ${reached + 1} or higher.` : '';
+  }
+
+  /** Tapping a name selects every name up to it; tapping the last selected one again unselects it. */
+  function chooseName(n, typed) {
+    const e = checkName(n);
+    if (e) { $('nameErr').textContent = e; $('nameInput').classList.add('bad'); return; }
+    $('nameErr').textContent = ''; $('nameInput').classList.remove('bad');
+    const base = S.revision ? 0 : (S.reached.NAMES || 0);
+    if (!typed && S.sel === n) S.sel = n - 1 > base ? n - 1 : null;
+    else S.sel = n;
+    if (typed) $('nameInput').value = '';
+    showNameSel();
+  }
+
+  function addNames() {
+    if (!S.sel) return;
+    S.item = S.data.curriculum.NAMES[S.sel - 1]; S.number = S.sel;
+    addToList();
+  }
+
+  /* ---- 4. verse / line number ---- */
+  function renderNumber() {
+    const t = S.track, i = S.item, prev = reachedFor(i), done = prev >= i.size;
+    $('numTitle').textContent = i.item;
+    $('numSub').textContent = (t.key === 'JUZ30' ? i.detail + ' · ' : 'Part ' + i.order + ' · ') + i.size + ' ' + (i.size === 1 ? t.unit : t.units);
+    $('numState').innerHTML = done ? `MashaAllah, you have <b>completed</b> this ${t.key === 'JUZ30' ? 'surah' : 'part'}.`
+      : prev ? `Last time you reached <b>${t.unit} ${prev}</b>. What ${t.unit} have you reached now?`
+      : `You are starting this ${t.key === 'JUZ30' ? 'surah' : 'part'}. What ${t.unit} did you reach?`;
+    $('numEntry').hidden = done;
+    $('revBtn').hidden = prev < 1 || !!pending(t.key, i.order, true);
+    const pe = pending(t.key, i.order, false);
+    $('numInList').hidden = !pe;
+    if (pe) $('numInList').innerHTML = i.tick ? 'This is already in your list.' : `In your list: up to <b>${t.unit} ${pe.number}</b>. Change the ticks to update it.`;
+    $('numInput').value = ''; $('numInput').classList.remove('bad'); $('numErr').textContent = '';
+    $('numInput').placeholder = done ? '' : `${prev + 1}–${i.size}`;
+    $('pickHint').textContent = `Or tap every ${t.unit} you read today, then add them to your list:`;
+    $('numRow').hidden = !!i.tick;
+    if (i.tick) {
+      // read-and-tick part: show what to read, then one button
+      if (!done) $('numState').innerHTML = 'Read this carefully, then tick it off.';
+      $('numEntry').hidden = false;
+      $('pickHint').textContent = '';
+      const tb = i.table;
+      $('numPick').className = '';
+      $('numPick').innerHTML = (tb ? `<div class="tablewrap"><table class="rak"><tr>${tb.head.map(h => `<th>${esc(h)}</th>`).join('')}</tr>` +
+          tb.rows.map(r => `<tr>${r.map((c, k) => k === 0 ? `<th>${esc(c)}</th>` : `<td class="${c ? '' : 'none'}">${esc(c)}</td>`).join('')}</tr>`).join('') +
+          `</table></div>${tb.note ? `<p class="tnote">${esc(tb.note)}</p>` : ''}` : '') +
+        (done || pe ? '' : `<button class="btn primary" data-tick="1">✓ I have read it</button>`);
+      $('addBar').hidden = true;
+      return;
+    }
+    if (i.lines && i.lines.length) {
+      $('numPick').className = 'lines' + (i.lines.some(l => l.arabic) ? ' quran' : '');
+      $('numPick').innerHTML = i.lines.map(l => `<button class="tile ${l.n <= prev ? 'done' : ''}" data-num="${l.n}" ${l.n <= prev ? 'disabled' : ''}>
+        <span class="ln">${l.n}</span><span class="tx">${l.text ? `<b>${esc(l.text)}</b>` : ''}${l.arabic ? `<span class="ar">${esc(l.arabic)}</span>` : ''}${l.sub ? `<small>${esc(l.sub)}</small>` : ''}</span></button>`).join('');
+    } else {
+      $('numPick').className = 'grid nums';
+      let h = '';
+      for (let n = 1; n <= i.size; n++) h += `<button class="tile ${n <= prev ? 'done' : ''}" data-num="${n}" ${n <= prev ? 'disabled' : ''}>${n}</button>`;
+      $('numPick').innerHTML = h;
+    }
+    S.sel = pe ? pe.number : null; // start from what is already in the list
+    showSelection();
+  }
+
+  /** Highlights the chosen verses (always a run from the next new verse) and updates the add bar. */
+  function showSelection() {
+    const t = S.track, i = S.item, prev = reachedFor(i), sel = S.sel;
+    document.querySelectorAll('#numPick [data-num]').forEach(b => {
+      const n = Number(b.dataset.num);
+      b.classList.toggle('pick', !!sel && n > prev && n <= sel);
+    });
+    $('addBar').hidden = !sel;
+    if (!sel) return;
+    const from = prev + 1, units = t.units.charAt(0).toUpperCase() + t.units.slice(1), unit = t.unit.charAt(0).toUpperCase() + t.unit.slice(1);
+    const count = sel - prev;
+    $('addText').innerHTML = (count === 1 ? `${unit} ${sel}` : `${units} ${from}–${sel}`) +
+      `<small>${count} ${count === 1 ? t.unit : t.units} selected${sel === i.size ? ' · completes this ' + (t.key === 'JUZ30' ? 'surah' : 'part') : ''}</small>`;
+  }
+
+  function checkNumber(n) {
+    const t = S.track, i = S.item, prev = reachedFor(i);
+    if (!Number.isInteger(n) || n < 1) return `Type the ${t.unit} number.`;
+    if (n > i.size) return `${i.item} only has ${i.size} ${t.units}. Type a number up to ${i.size}.`;
+    if (n <= prev) return `You already reached ${t.unit} ${prev}. Type ${prev + 1} or higher.`;
+    return '';
+  }
+
+  /** Tapping a verse selects every new verse up to it; tapping the last selected one again unselects it. */
+  function chooseNumber(n, typed) {
+    const e = checkNumber(n);
+    if (e) { $('numErr').textContent = e; $('numInput').classList.add('bad'); return; }
+    $('numErr').textContent = ''; $('numInput').classList.remove('bad');
+    const prev = reachedFor(S.item);
+    if (!typed && S.sel === n) S.sel = n - 1 > prev ? n - 1 : null;
+    else S.sel = n;
+    if (typed) $('numInput').value = '';
+    showSelection();
+  }
+
+  function addSelected() {
+    if (!S.sel) return;
+    S.number = S.sel; S.revision = false;
+    addToList();
+  }
+
+  /* ---- 5. today's list ---- */
+  function describe(e) {
+    const t = trackOf(e.track), items = S.data.curriculum[e.track], i = items.find(x => x.order === e.order);
+    if (t.mode === 'upto') {
+      const from = e.revision ? 1 : (S.reached.NAMES || 0) + 1;
+      return { what: from === e.number ? `Name ${e.number}` : `Names ${from}–${e.number}`, more: `Up to ${i.item}`, type: e.revision ? 'Revision' : 'New sabaq' };
+    }
+    if (e.revision) return { what: i.item, type: 'Revision' };
+    if (i.tick) return { what: i.item, type: 'Read ✓' };
+    const from = ((S.reached[e.track] || {})[e.order] || 0) + 1;
+    const range = from === e.number ? `${t.unit} ${e.number}` : `${t.units} ${from}–${e.number}`;
+    return { what: i.item, more: `${range.charAt(0).toUpperCase() + range.slice(1)} (of ${i.size})`, type: e.number === i.size ? 'Completed!' : 'New sabaq' };
+  }
+
+  function addToList() {
+    const t = S.track, i = S.item, rev = !!S.revision;
+    const order = t.mode === 'upto' ? S.number : i.order;
+    const entry = { key: keyOf(t.key, order, rev), track: t.key, order: order, number: S.number, revision: rev };
+    const at = S.list.findIndex(e => e.key === entry.key);
+    if (at >= 0) S.list[at] = entry; else S.list.push(entry); // choosing the same thing again replaces it
+    renderList(); show('list');
+  }
+
+  function renderList() {
+    clearArmed = false; $('clearBtn').textContent = 'Start again'; $('clearBtn').classList.remove('warn');
+    if (!S.list.length) $('listErr').hidden = true;
+    $('listTitle').textContent = `${first(S.student.name)}'s sabaq today`;
+    $('rows').innerHTML = S.list.length ? S.list.map((e, k) => {
+      const d = describe(e);
+      return `<div class="row"><div class="what"><small>${esc(trackOf(e.track).label)}</small>${esc(d.what)}${d.more ? `<span>${esc(d.more)}</span>` : ''}</div>
+        <span class="pill ${e.revision ? 'rev' : ''}">${esc(d.type)}</span>
+        <button class="x" data-remove="${k}" aria-label="Remove">✕</button></div>`;
+    }).join('') : '<p class="sub">Your list is empty. Add what you read today.</p>';
+    $('moreSame').hidden = !S.track;
+    if (S.track) $('moreSame').textContent = '+ More ' + S.track.label;
+    $('saveBtn').disabled = !S.list.length;
+    $('saveBtn').textContent = S.list.length > 1 ? `Save all ${S.list.length}` : 'Save';
+  }
+
+  /** Moves a saved list forward on this tablet straight away (the sheet confirms in the background). */
+  function applyLocally(reached, list) {
+    list.filter(e => !e.revision).forEach(e => {
+      if (e.track === 'NAMES') reached.NAMES = Math.max(reached.NAMES || 0, e.number);
+      else { const m = reached[e.track] || (reached[e.track] = {}); m[e.order] = Math.max(m[e.order] || 0, e.number); }
+    });
+    return reached;
+  }
+
+  function save() {
+    if (S.busy || !S.list.length) return;
+    const student = S.student, list = S.list.slice(), saved = list.map(describe);
+    const batch = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      studentId: student.id, ts: Date.now(),
+      entries: list.map(e => ({ track: e.track, order: e.order, number: e.number, revision: e.revision }))
+    };
+    const q = queue(); q.push(batch);
+    if (!store.set(KEY.queue, q)) { $('listErr').textContent = 'This tablet could not store the save. Please tell your teacher.'; $('listErr').hidden = false; return; }
+    rebuild();
+    $('savedTitle').textContent = `MashaAllah, ${first(student.name)}!`;
+    $('savedSub').textContent = list.length > 1 ? `All ${list.length} have been saved.` : 'Your sabaq has been saved.';
+    $('savedList').innerHTML = saved.map(d => `<li><b>${esc(d.what)}</b>${d.more ? ' · ' + esc(d.more) : ''} · ${esc(d.type)}</li>`).join('');
+    S.list = [];
+    show('saved');
+    clearTimeout(savedTimer);
+    savedTimer = setTimeout(goHome, 8000);
+    syncChip();
+    flush();
+  }
+
+  /* ---- taps ---- */
+  document.addEventListener('click', ev => {
+    resetIdle();
+    const b = ev.target.closest('button');
+    if (!b || b.disabled) return;
+    const d = b.dataset;
+    if (d.go) { if (d.go === 'home') goHome(); else { if (d.go === 'list') renderList(); if (d.go === 'track') renderTracks(); if (d.go === 'item') renderItems(); show(d.go); } return; }
+    if (d.remove) { S.list.splice(Number(d.remove), 1); renderList(); show('list'); return; }
+    if (d.set) { S.set = d.set; renderHome(); return; }
+    if (d.student) {
+      S.student = S.data.students.find(s => s.id === d.student);
+      S.reached = JSON.parse(JSON.stringify((S.data.reached || {})[S.student.id] || {}));
+      $('listErr').hidden = true;
+      renderTracks(); show('track');   // instant – positions are stored on this tablet
+      return;
+    }
+    if (d.track) { S.track = S.data.tracks.find(t => t.key === d.track); S.revision = false; renderItems(); show('item'); return; }
+    if (d.namemode) { S.revision = d.namemode === 'rev'; renderNames(); return; }
+    if (d.name) { chooseName(Number(d.name)); return; }
+    if (d.order) {
+      S.item = S.data.curriculum[S.track.key].find(i => i.order === Number(d.order));
+      S.number = null; S.revision = false;
+      if (S.item.tick && !S.item.table && reachedFor(S.item) < 1) { S.number = 1; addToList(); return; } // read-and-tick part
+      renderNumber(); show('number'); return;
+    }
+    if (d.num) { chooseNumber(Number(d.num)); return; }
+    if (d.tick) { S.number = 1; S.revision = false; addToList(); return; }
+  });
+
+  $('numGo').addEventListener('click', () => chooseNumber(Number($('numInput').value.trim()), true));
+  $('addBtn').addEventListener('click', addSelected);
+  $('nameGo').addEventListener('click', () => chooseName(Number($('nameInput').value.trim()), true));
+  $('nameAddBtn').addEventListener('click', addNames);
+  [['numInput', 'numErr', () => $('numGo').click()], ['nameInput', 'nameErr', () => $('nameGo').click()]].forEach(([inp, err, go]) => {
+    $(inp).addEventListener('input', () => {
+      $(inp).value = $(inp).value.replace(/\D/g, '');
+      $(inp).classList.remove('bad'); $(err).textContent = '';
+    });
+    $(inp).addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  });
+  $('revBtn').addEventListener('click', () => { S.revision = true; S.number = null; addToList(); });
+
+  $('saveBtn').addEventListener('click', save);
+  $('moreSame').addEventListener('click', () => { S.revision = false; renderItems(); show('item'); });
+  $('moreOther').addEventListener('click', () => { renderTracks(); show('track'); });
+  $('clearBtn').addEventListener('click', () => {
+    if (!clearArmed) { clearArmed = true; $('clearBtn').textContent = 'Tap again to clear your list'; $('clearBtn').classList.add('warn'); return; }
+    S.list = []; renderTracks(); show('track');
+  });
+
+  function tick() {
+    const d = new Date();
+    $('clock').innerHTML = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }) +
+      '<br>' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  }
+  tick(); setInterval(tick, 20000);
+  $('sync').addEventListener('click', () => { flush(); refresh(); });
+  $('setupGo').addEventListener('click', connect);
+  $('setupUrl').addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+  $('setupCancel').addEventListener('click', goHome);
+  let titleTaps = [];   // teacher: tap the title 5 times to change the link
+  $('title').addEventListener('click', () => {
+    const now = Date.now(); titleTaps = titleTaps.filter(t => now - t < 3000).concat(now);
+    if (titleTaps.length >= 5) { titleTaps = []; showSetup(true); }
+  });
+
+  setInterval(flush, 30000);                                            // keep trying to send
+  setInterval(() => { if (!$('home').hidden) refresh(); }, 10 * 60000); // new students, cross-outs, birthdays
+  window.addEventListener('online', () => { flush(); refresh(); });
+  window.addEventListener('offline', syncChip);
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+  if ('serviceWorker' in navigator) {
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController) return;                 // first install, nothing to switch
+      if (!$('home').hidden) location.reload(); else reloadPending = true;
+    });
+  }
+
+  if (!API || !SERVER) showSetup(false);
+  else { rebuild(); $('loading').hidden = true; renderHome(); show('home'); syncChip(); refresh(); flush(); }
+</script>
+</body>
+</html>
